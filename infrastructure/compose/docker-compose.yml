@@ -1,0 +1,50 @@
+version: "3.9"
+
+services:
+
+  postgres:
+    image: postgres:17
+    container_name: spp-postgres
+
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: spp_valora
+      POSTGRES_USER: spp
+      POSTGRES_PASSWORD: spp123
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:8
+
+    container_name: spp-redis
+
+    restart: unless-stopped
+
+    ports:
+      - "6379:6379"
+
+  rabbitmq:
+
+    image: rabbitmq:4-management
+
+    container_name: spp-rabbitmq
+
+    restart: unless-stopped
+
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+
+volumes:
+
+  postgres-data:

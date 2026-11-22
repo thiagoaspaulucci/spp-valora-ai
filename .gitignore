@@ -1,0 +1,55 @@
+# ============================================================================
+# SPP Valora AI — .gitignore raiz
+# ============================================================================
+
+# --- Build (Java / Maven) ---
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+*.jar
+*.war
+*.class
+
+# --- IDEs ---
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.project
+.classpath
+*.code-workspace
+nbproject/
+build/
+!**/src/**/build/
+
+# --- Python (automation/) ---
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.mypy_cache/
+.pytest_cache/
+
+# --- Segredos / ambiente ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+application-local.properties
+application-local.yml
+
+# --- Artefatos / temporários ---
+*.zip
+*.tar
+*.tar.gz
+*.log
+*.tmp
+
+# --- SO ---
+.DS_Store
+Thumbs.db
+desktop.ini

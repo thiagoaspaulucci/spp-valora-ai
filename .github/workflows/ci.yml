@@ -30,6 +30,8 @@ jobs:
         working-directory: backend/auth-service
         env:
           DOCKER_HOST: unix:///var/run/docker.sock
+          # docker-java usa API 1.32 por padrão; o Docker 29 exige >= 1.40.
+          DOCKER_API_VERSION: "1.44"
           TESTCONTAINERS_RYUK_DISABLED: "true"
         run: |
           chmod +x ./mvnw

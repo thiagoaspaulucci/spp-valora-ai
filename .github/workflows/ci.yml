@@ -34,7 +34,7 @@ jobs:
           ./mvnw -B -ntp clean verify 2>&1 | tee /tmp/build.log
           code=${PIPESTATUS[0]}
           if [ "$code" -ne 0 ]; then
-            diag=$( (grep -iE 'docker|testcontainers|ryuk|\.sock|DockerClientProviderStrategy|Could not|environment|BUILD FAILURE|Tests run' /tmp/build.log | tail -n 80) | sed -z 's/%/%25/g; s/\r//g; s/\n/%0A/g')
+            diag=$( (grep -iE 'Could not find a valid Docker|DockerClientProviderStrategy|valid Docker environment|as the Docker|ping|Ryuk|accessible|Tests run:|BUILD FAILURE' /tmp/build.log | head -n 60) | sed -z 's/%/%25/g; s/\r//g; s/\n/%0A/g')
             echo "::error title=Build diagnostics::${diag}"
           fi
           exit "$code"

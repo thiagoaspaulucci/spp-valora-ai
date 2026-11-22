@@ -21,20 +21,20 @@ jobs:
           java-version: "21"
           cache: maven
 
+      - name: Docker sanity
+        run: |
+          info=$( (echo "DOCKER_HOST=${DOCKER_HOST:-<unset>}"; echo '--- docker version ---'; docker version 2>&1; echo '--- docker info (head) ---'; docker info 2>&1 | head -25; echo '--- socket ---'; ls -l /var/run/docker.sock 2>&1) | sed -z 's/%/%25/g; s/\r//g; s/\n/%0A/g')
+          echo "::warning title=Docker sanity::${info}"
+
       - name: Build & Test
         working-directory: backend/auth-service
-        # Usa o Maven Wrapper (3.9.16) para garantir a versão exigida pelo Spring Boot 4.
-        # Em caso de falha, exporta o fim do log como annotation (legível via API pública).
         run: |
           chmod +x ./mvnw
           set +e
           ./mvnw -B -ntp clean verify 2>&1 | tee /tmp/build.log
           code=${PIPESTATUS[0]}
           if [ "$code" -ne 0 ]; then
-            echo "::group::Maven failure tail"
-            tail -n 150 /tmp/build.log
-            echo "::endgroup::"
-            msg=$(tail -n 120 /tmp/build.log | sed -z 's/%/%25/g; s/\r//g; s/\n/%0A/g')
-            echo "::error title=Maven build failure::${msg}"
+            diag=$( (grep -iE 'docker|testcontainers|ryuk|\.sock|DockerClientProviderStrategy|Could not|environment|BUILD FAILURE|Tests run' /tmp/build.log | tail -n 80) | sed -z 's/%/%25/g; s/\r//g; s/\n/%0A/g')
+            echo "::error title=Build diagnostics::${diag}"
           fi
           exit "$code"

@@ -43,6 +43,8 @@ jobs:
               for f in target/surefire-reports/*IntegrationTest.txt target/surefire-reports/*ApplicationTests.txt; do
                 [ -f "$f" ] && { echo "=== $(basename "$f") ==="; grep -A 8 -E '<<< (FAILURE|ERROR)!' "$f" | head -n 50; echo '...'; grep -E 'Caused by:' "$f" | head -n 8; }
               done
+              echo '--- server exception ---'
+              grep -iE 'Instant|InvalidDefinition|not supported|No serializer|cannot|jackson|JacksonException|java\.time' /tmp/build.log | grep -ivE 'Pulling|downloaded|extracted|image layers' | head -n 25
               echo '--- resumo ---'
               grep -E 'Tests run:|BUILD FAILURE' /tmp/build.log | tail -n 8
             )

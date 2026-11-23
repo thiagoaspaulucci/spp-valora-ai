@@ -41,7 +41,7 @@ jobs:
           if [ "$code" -ne 0 ]; then
             diag=$(
               for f in target/surefire-reports/*IntegrationTest.txt target/surefire-reports/*ApplicationTests.txt; do
-                [ -f "$f" ] && { echo "=== $(basename "$f") ==="; sed -n '1,50p' "$f"; }
+                [ -f "$f" ] && { echo "=== $(basename "$f") ==="; grep -E 'Caused by:' "$f" | head -n 15; }
               done
               echo '--- resumo ---'
               grep -E 'Tests run:|BUILD FAILURE' /tmp/build.log | tail -n 8

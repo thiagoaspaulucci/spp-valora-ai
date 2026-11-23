@@ -21,34 +21,22 @@ jobs:
           java-version: "21"
           cache: maven
 
-      - name: Docker sanity
-        run: |
-          info=$( (echo "DOCKER_HOST=${DOCKER_HOST:-<unset>}"; echo '--- docker version ---'; docker version 2>&1; echo '--- docker info (head) ---'; docker info 2>&1 | head -25; echo '--- socket ---'; ls -l /var/run/docker.sock 2>&1) | sed -z 's/%/%25/g; s/\r//g; s/\n/%0A/g')
-          echo "::warning title=Docker sanity::${info}"
-
       - name: Build & Test
         working-directory: backend/auth-service
         env:
+          # Testcontainers: aponta o socket e fixa a API (Docker >= 29 exige >= 1.40;
+          # a versão efetiva é forçada em src/test/resources/docker-java.properties).
           DOCKER_HOST: unix:///var/run/docker.sock
-          # docker-java usa API 1.32 por padrão; o Docker 29 exige >= 1.40.
           DOCKER_API_VERSION: "1.44"
           TESTCONTAINERS_RYUK_DISABLED: "true"
         run: |
           chmod +x ./mvnw
-          set +e
-          ./mvnw -B -ntp clean verify 2>&1 | tee /tmp/build.log
-          code=${PIPESTATUS[0]}
-          if [ "$code" -ne 0 ]; then
-            diag=$(
-              for f in target/surefire-reports/*IntegrationTest.txt target/surefire-reports/*ApplicationTests.txt; do
-                [ -f "$f" ] && { echo "=== $(basename "$f") ==="; grep -A 8 -E '<<< (FAILURE|ERROR)!' "$f" | head -n 50; echo '...'; grep -E 'Caused by:' "$f" | head -n 8; }
-              done
-              echo '--- server exception ---'
-              grep -iE 'Instant|InvalidDefinition|not supported|No serializer|cannot|jackson|JacksonException|java\.time' /tmp/build.log | grep -ivE 'Pulling|downloaded|extracted|image layers' | head -n 25
-              echo '--- resumo ---'
-              grep -E 'Tests run:|BUILD FAILURE' /tmp/build.log | tail -n 8
-            )
-            diag=$(printf '%s' "$diag" | sed -z 's/%/%25/g; s/\r//g; s/\n/%0A/g')
-            echo "::error title=Build diagnostics::${diag}"
-          fi
-          exit "$code"
+          ./mvnw -B -ntp clean verify
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: backend/auth-service/target/surefire-reports/
+          if-no-files-found: ignore

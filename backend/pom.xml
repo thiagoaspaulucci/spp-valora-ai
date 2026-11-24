@@ -30,6 +30,7 @@
     <modules>
         <module>auth-service</module>
         <module>gateway</module>
+        <module>property-service</module>
     </modules>
 
     <!-- Versões compartilhadas por todos os microserviços -->

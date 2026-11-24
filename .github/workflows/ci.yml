@@ -31,7 +31,25 @@ jobs:
           TESTCONTAINERS_RYUK_DISABLED: "true"
         run: |
           chmod +x ./mvnw
-          ./mvnw -B -ntp clean verify
+          set +e
+          ./mvnw -B -ntp clean verify 2>&1 | tee /tmp/build.log
+          code=${PIPESTATUS[0]}
+          if [ "$code" -ne 0 ]; then
+            diag=$(
+              for f in $(find . -path '*/surefire-reports/*.txt'); do
+                if grep -qE '<<< (FAILURE|ERROR)!' "$f"; then
+                  echo "=== $f ==="
+                  grep -A 6 -E '<<< (FAILURE|ERROR)!' "$f" | head -n 30
+                  grep -E 'Caused by:' "$f" | head -n 6
+                fi
+              done
+              echo '--- resumo ---'
+              grep -E 'Tests run:|BUILD FAILURE' /tmp/build.log | tail -n 10
+            )
+            diag=$(printf '%s' "$diag" | sed -z 's/%/%25/g; s/\r//g; s/\n/%0A/g')
+            echo "::error title=Build diagnostics::${diag}"
+          fi
+          exit "$code"
 
       - name: Upload test reports
         if: failure()

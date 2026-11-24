@@ -1,5 +1,6 @@
 package br.com.spp.valuation.service;
 
+import br.com.spp.valuation.client.MarketClient;
 import br.com.spp.valuation.client.PropertyClient;
 import br.com.spp.valuation.client.PropertyView;
 import br.com.spp.valuation.dto.ValuationRequest;
@@ -33,13 +34,15 @@ class ValuationServiceTest {
     private ValuationRepository repository;
     @Mock
     private PropertyClient propertyClient;
+    @Mock
+    private MarketClient marketClient;
 
     private final ValuationEngine engine = new ValuationEngine(
             new ValuationProperties(new BigDecimal("8000"), Map.of("APARTMENT", new BigDecimal("1.00"))));
     private final ValuationMapper mapper = new ValuationMapper();
 
     private ValuationService service() {
-        return new ValuationService(repository, propertyClient, engine, mapper);
+        return new ValuationService(repository, propertyClient, marketClient, engine, mapper);
     }
 
     @Test
@@ -48,6 +51,7 @@ class ValuationServiceTest {
         PropertyView property = new PropertyView(propertyId, "APARTMENT", new BigDecimal("100"),
                 2, 1, 1, null, "São Paulo", "SP");
         when(propertyClient.fetch(propertyId, "token-123")).thenReturn(property);
+        when(marketClient.fetchRate(any(), any(), any(), any())).thenReturn(java.util.Optional.empty());
         when(repository.save(any(Valuation.class))).thenAnswer(inv -> {
             Valuation v = inv.getArgument(0);
             v.setId(UUID.randomUUID());

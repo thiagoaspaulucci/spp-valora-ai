@@ -24,11 +24,24 @@ class ValuationEngineTest {
                 java.util.UUID.randomUUID(), "APARTMENT", new BigDecimal("100"),
                 2, 1, 1, null, "São Paulo", "SP");
 
-        ValuationEngine.Result result = engine().estimate(property);
+        ValuationEngine.Result result = engine().estimate(property, null);
 
         assertThat(result.pricePerSqm()).isEqualByComparingTo("8000.00");
         // 100 * 8000 * 1.045 = 836000.00
         assertThat(result.estimatedValue()).isEqualByComparingTo("836000.00");
+    }
+
+    @Test
+    void shouldUseMarketRateWhenProvided() {
+        PropertyView property = new PropertyView(
+                java.util.UUID.randomUUID(), "APARTMENT", new BigDecimal("100"),
+                0, 0, 0, null, "São Paulo", "SP");
+
+        // preço de referência de mercado = 10000/m²; fator 1.0
+        ValuationEngine.Result result = engine().estimate(property, new BigDecimal("10000"));
+
+        assertThat(result.pricePerSqm()).isEqualByComparingTo("10000.00");
+        assertThat(result.estimatedValue()).isEqualByComparingTo("1000000.00");
     }
 
     @Test
@@ -37,7 +50,7 @@ class ValuationEngineTest {
                 java.util.UUID.randomUUID(), "HOUSE", new BigDecimal("100"),
                 0, 0, 0, null, "São Paulo", "SP");
 
-        ValuationEngine.Result result = engine().estimate(house);
+        ValuationEngine.Result result = engine().estimate(house, null);
 
         // 8000 * 1.05 = 8400/m²; fator 1.0; 100 * 8400 = 840000.00
         assertThat(result.pricePerSqm()).isEqualByComparingTo("8400.00");
@@ -50,7 +63,7 @@ class ValuationEngineTest {
                 java.util.UUID.randomUUID(), "LAND", new BigDecimal("100"),
                 0, 0, 0, null, "São Paulo", "SP");
 
-        ValuationEngine.Result result = engine().estimate(land);
+        ValuationEngine.Result result = engine().estimate(land, null);
 
         assertThat(result.pricePerSqm()).isEqualByComparingTo("8000.00");
     }

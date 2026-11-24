@@ -1,5 +1,6 @@
 package br.com.spp.valuation.service;
 
+import br.com.spp.valuation.client.MarketClient;
 import br.com.spp.valuation.client.PropertyClient;
 import br.com.spp.valuation.client.PropertyView;
 import br.com.spp.valuation.dto.PageResponse;
@@ -18,6 +19,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 /**
@@ -31,13 +33,15 @@ public class ValuationService {
 
     private final ValuationRepository repository;
     private final PropertyClient propertyClient;
+    private final MarketClient marketClient;
     private final ValuationEngine engine;
     private final ValuationMapper mapper;
 
     public ValuationService(ValuationRepository repository, PropertyClient propertyClient,
-                            ValuationEngine engine, ValuationMapper mapper) {
+                            MarketClient marketClient, ValuationEngine engine, ValuationMapper mapper) {
         this.repository = repository;
         this.propertyClient = propertyClient;
+        this.marketClient = marketClient;
         this.engine = engine;
         this.mapper = mapper;
     }
@@ -45,7 +49,10 @@ public class ValuationService {
     @Transactional
     public ValuationResponse create(ValuationRequest request, String requester, String bearerToken) {
         PropertyView property = propertyClient.fetch(request.propertyId(), bearerToken);
-        ValuationEngine.Result result = engine.estimate(property);
+        BigDecimal marketRate = marketClient
+                .fetchRate(property.city(), property.state(), property.type(), bearerToken)
+                .orElse(null);
+        ValuationEngine.Result result = engine.estimate(property, marketRate);
 
         Valuation valuation = Valuation.builder()
                 .propertyId(property.id())

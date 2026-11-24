@@ -36,10 +36,17 @@ public class ValuationEngine {
     public record Result(BigDecimal estimatedValue, BigDecimal pricePerSqm) {
     }
 
-    public Result estimate(PropertyView property) {
-        BigDecimal pricePerSqm = properties.basePricePerSqm()
-                .multiply(properties.multiplierFor(property.type()))
-                .setScale(2, RoundingMode.HALF_UP);
+    /**
+     * Estima o valor do imóvel. Se {@code marketPricePerSqm} for informado
+     * (preço de referência do market-service), ele é usado como preço por m²;
+     * caso contrário, aplica-se o preço base de configuração × multiplicador.
+     */
+    public Result estimate(PropertyView property, BigDecimal marketPricePerSqm) {
+        BigDecimal pricePerSqm = (marketPricePerSqm != null)
+                ? marketPricePerSqm.setScale(2, RoundingMode.HALF_UP)
+                : properties.basePricePerSqm()
+                        .multiply(properties.multiplierFor(property.type()))
+                        .setScale(2, RoundingMode.HALF_UP);
 
         BigDecimal baseValue = property.areaSqm().multiply(pricePerSqm);
 

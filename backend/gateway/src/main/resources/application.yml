@@ -23,6 +23,10 @@ spring:
               uri: ${PROPERTY_SERVICE_URI:http://localhost:8081}
               predicates:
                 - Path=/api/v1/properties/**
+            - id: valuation-service
+              uri: ${VALUATION_SERVICE_URI:http://localhost:8082}
+              predicates:
+                - Path=/api/v1/valuations/**
 
 spp:
   security:

@@ -33,6 +33,7 @@
         <module>property-service</module>
         <module>valuation-service</module>
         <module>report-service</module>
+        <module>market-service</module>
     </modules>
 
     <!-- Versões compartilhadas por todos os microserviços -->

@@ -118,6 +118,35 @@ services:
       retries: 3
       start_period: 40s
 
+  report-service:
+    build:
+      context: ../../backend
+      dockerfile: report-service/Dockerfile
+    container_name: spp-report-service
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-spp_valora}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-spp}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-spp123}
+      AUTH_JWKS_URI: http://auth-service:8080/oauth2/jwks
+      VALUATION_SERVICE_URI: http://valuation-service:8082
+    ports:
+      - "8083:8083"
+    mem_limit: 512m
+    cpus: 1.0
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8083/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
   gateway:
     build:
       context: ../../backend
@@ -132,6 +161,7 @@ services:
       AUTH_JWKS_URI: http://auth-service:8080/oauth2/jwks
       PROPERTY_SERVICE_URI: http://property-service:8081
       VALUATION_SERVICE_URI: http://valuation-service:8082
+      REPORT_SERVICE_URI: http://report-service:8083
     ports:
       - "8090:8090"
     mem_limit: 512m

@@ -1,49 +1,64 @@
-version: "3.9"
-
 services:
 
   postgres:
     image: postgres:17
     container_name: spp-postgres
-
     restart: unless-stopped
-
     environment:
-      POSTGRES_DB: spp_valora
-      POSTGRES_USER: spp
-      POSTGRES_PASSWORD: spp123
-
+      POSTGRES_DB: ${POSTGRES_DB:-spp_valora}
+      POSTGRES_USER: ${POSTGRES_USER:-spp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-spp123}
     ports:
       - "5432:5432"
-
     volumes:
       - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-spp} -d ${POSTGRES_DB:-spp_valora}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:8
-
     container_name: spp-redis
-
     restart: unless-stopped
-
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:-spp123}"]
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD:-spp123} ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  rabbitmq:
-
-    image: rabbitmq:4-management
-
-    container_name: spp-rabbitmq
-
+  auth-service:
+    build:
+      context: ../../backend/auth-service
+    container_name: spp-auth-service
     restart: unless-stopped
-
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
-      RABBITMQ_DEFAULT_USER: admin
-      RABBITMQ_DEFAULT_PASS: admin
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-spp_valora}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-spp}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-spp123}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-spp123}
+    ports:
+      - "8080:8080"
+    mem_limit: 512m
+    cpus: 1.0
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
 
 volumes:
 

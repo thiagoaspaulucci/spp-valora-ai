@@ -6,8 +6,8 @@ on:
   pull_request:
 
 jobs:
-  auth-service:
-    name: auth-service (build & test)
+  backend:
+    name: backend (build & test)
     runs-on: ubuntu-latest
 
     steps:
@@ -22,10 +22,10 @@ jobs:
           cache: maven
 
       - name: Build & Test
-        working-directory: backend/auth-service
+        working-directory: backend
         env:
-          # Testcontainers: aponta o socket e fixa a API (Docker >= 29 exige >= 1.40;
-          # a versão efetiva é forçada em src/test/resources/docker-java.properties).
+          # Testcontainers (auth-service): aponta o socket e fixa a API
+          # (Docker >= 29 exige >= 1.40; versão forçada em docker-java.properties).
           DOCKER_HOST: unix:///var/run/docker.sock
           DOCKER_API_VERSION: "1.44"
           TESTCONTAINERS_RYUK_DISABLED: "true"
@@ -38,5 +38,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: surefire-reports
-          path: backend/auth-service/target/surefire-reports/
+          path: backend/**/target/surefire-reports/
           if-no-files-found: ignore

@@ -35,6 +35,10 @@ spring:
               uri: ${MARKET_SERVICE_URI:http://localhost:8084}
               predicates:
                 - Path=/api/v1/market-references/**
+            - id: ai-service
+              uri: ${AI_SERVICE_URI:http://localhost:8085}
+              predicates:
+                - Path=/api/v1/ai/**
 
 spp:
   security:

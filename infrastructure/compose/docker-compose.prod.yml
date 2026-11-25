@@ -1,0 +1,219 @@
+# ============================================================================
+# SPP Valora AI — stack de PRODUÇÃO (1 VM + docker-compose)
+#
+# Única porta pública: nginx (frontend) na 80, que serve o SPA e faz proxy de
+# /api e /oauth2 para o gateway. Todos os demais serviços são internos.
+# Segredos vêm do .env (ver .env.prod.example). Chaves RSA em ../keys.
+#
+# Subir:  docker compose -f docker-compose.prod.yml --env-file .env up -d --build
+# ============================================================================
+
+services:
+
+  postgres:
+    image: postgres:17
+    container_name: spp-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:8
+    container_name: spp-redis
+    restart: unless-stopped
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD} ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  auth-service:
+    build:
+      context: ../../backend
+      dockerfile: auth-service/Dockerfile
+    container_name: spp-auth-service
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      JWT_PUBLIC_KEY_LOCATION: file:/keys/public.pem
+      JWT_PRIVATE_KEY_LOCATION: file:/keys/private.pem
+      CORS_ALLOWED_ORIGINS: ${PUBLIC_ORIGIN}
+    volumes:
+      - ../keys:/keys:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  property-service:
+    build:
+      context: ../../backend
+      dockerfile: property-service/Dockerfile
+    container_name: spp-property-service
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+      auth-service: { condition: service_healthy }
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      AUTH_JWKS_URI: http://auth-service:8080/oauth2/jwks
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8081/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  valuation-service:
+    build:
+      context: ../../backend
+      dockerfile: valuation-service/Dockerfile
+    container_name: spp-valuation-service
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+      auth-service: { condition: service_healthy }
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      AUTH_JWKS_URI: http://auth-service:8080/oauth2/jwks
+      PROPERTY_SERVICE_URI: http://property-service:8081
+      MARKET_SERVICE_URI: http://market-service:8084
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8082/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  report-service:
+    build:
+      context: ../../backend
+      dockerfile: report-service/Dockerfile
+    container_name: spp-report-service
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+      auth-service: { condition: service_healthy }
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      AUTH_JWKS_URI: http://auth-service:8080/oauth2/jwks
+      VALUATION_SERVICE_URI: http://valuation-service:8082
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8083/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  market-service:
+    build:
+      context: ../../backend
+      dockerfile: market-service/Dockerfile
+    container_name: spp-market-service
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+      auth-service: { condition: service_healthy }
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      AUTH_JWKS_URI: http://auth-service:8080/oauth2/jwks
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8084/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  ai-service:
+    build:
+      context: ../../backend
+      dockerfile: ai-service/Dockerfile
+    container_name: spp-ai-service
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+      auth-service: { condition: service_healthy }
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      AUTH_JWKS_URI: http://auth-service:8080/oauth2/jwks
+      PROPERTY_SERVICE_URI: http://property-service:8081
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8085/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  gateway:
+    build:
+      context: ../../backend
+      dockerfile: gateway/Dockerfile
+    container_name: spp-gateway
+    restart: unless-stopped
+    depends_on:
+      auth-service: { condition: service_healthy }
+    environment:
+      AUTH_JWKS_URI: http://auth-service:8080/oauth2/jwks
+      AUTH_SERVICE_URI: http://auth-service:8080
+      PROPERTY_SERVICE_URI: http://property-service:8081
+      VALUATION_SERVICE_URI: http://valuation-service:8082
+      REPORT_SERVICE_URI: http://report-service:8083
+      MARKET_SERVICE_URI: http://market-service:8084
+      AI_SERVICE_URI: http://ai-service:8085
+      CORS_ALLOWED_ORIGINS: ${PUBLIC_ORIGIN}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8090/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  frontend:
+    build:
+      context: ../../frontend
+      dockerfile: Dockerfile
+    container_name: spp-frontend
+    restart: unless-stopped
+    depends_on:
+      - gateway
+    ports:
+      - "80:80"
+
+volumes:
+  postgres-data:

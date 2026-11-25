@@ -1,0 +1,8 @@
+# Força LF em arquivos que rodam/são lidos em Linux (containers, VM de deploy).
+*.sh            text eol=lf
+Dockerfile      text eol=lf
+*.conf          text eol=lf
+*.yml           text eol=lf
+*.yaml          text eol=lf
+.env.*          text eol=lf
+mvnw            text eol=lf

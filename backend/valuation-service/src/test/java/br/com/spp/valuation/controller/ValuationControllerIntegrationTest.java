@@ -1,6 +1,7 @@
 package br.com.spp.valuation.controller;
 
 import br.com.spp.valuation.TestcontainersConfiguration;
+import br.com.spp.valuation.client.MarketClient;
 import br.com.spp.valuation.client.PropertyClient;
 import br.com.spp.valuation.client.PropertyView;
 import br.com.spp.valuation.dto.ValuationRequest;
@@ -43,6 +44,9 @@ class ValuationControllerIntegrationTest {
     @MockitoBean
     private PropertyClient propertyClient;
 
+    @MockitoBean
+    private MarketClient marketClient;
+
     private static RequestPostProcessor jwtOf(String subject) {
         return jwt().jwt(builder -> builder.subject(subject));
     }
@@ -53,6 +57,7 @@ class ValuationControllerIntegrationTest {
         when(propertyClient.fetch(any(UUID.class), any(String.class)))
                 .thenReturn(new PropertyView(propertyId, "APARTMENT", new BigDecimal("100"),
                         2, 1, 1, null, "São Paulo", "SP"));
+        when(marketClient.fetchRate(any(), any(), any(), any())).thenReturn(java.util.Optional.empty());
 
         String body = objectMapper.writeValueAsString(new ValuationRequest(propertyId));
 

@@ -28,9 +28,13 @@ openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out private.pem
 # Chave pública correspondente (SPKI)
 openssl rsa -in private.pem -pubout -out public.pem
 
-chmod 600 private.pem
+# 644: o auth-service roda como usuário não-root (uid 1001) dentro do container
+# e precisa LER a chave montada em /keys:ro. O host é single-tenant (só root) e
+# esta pasta é gitignored, então a chave não vaza. Para um host multiusuário,
+# prefira Docker secrets ou alinhar o uid do dono ao do container.
+chmod 644 private.pem
 chmod 644 public.pem
 
 echo "OK: chaves geradas."
-echo "  private.pem  -> mantenha em segredo (640/600, nunca no git)"
+echo "  private.pem  -> segredo; nunca versione (já está no .gitignore)"
 echo "  public.pem   -> exposta via /oauth2/jwks"

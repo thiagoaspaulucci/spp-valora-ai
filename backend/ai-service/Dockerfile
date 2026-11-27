@@ -7,6 +7,12 @@ FROM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /app
 
 COPY pom.xml .
+COPY auth-service/pom.xml auth-service/pom.xml
+COPY gateway/pom.xml gateway/pom.xml
+COPY property-service/pom.xml property-service/pom.xml
+COPY valuation-service/pom.xml valuation-service/pom.xml
+COPY report-service/pom.xml report-service/pom.xml
+COPY market-service/pom.xml market-service/pom.xml
 COPY ai-service/pom.xml ai-service/pom.xml
 RUN mvn -B -ntp -pl ai-service -am dependency:go-offline
 
